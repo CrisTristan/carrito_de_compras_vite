@@ -25,7 +25,7 @@ Tienes 2 opciones:
 ### Opcion A: Clonar con Git
 
 ```bash
-git clone <URL_DEL_REPOSITORIO>
+git clone https://github.com/CrisTristan/carrito_de_compras_vite
 cd carrito-frontend
 ```
 
