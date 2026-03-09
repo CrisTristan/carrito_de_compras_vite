@@ -26,7 +26,7 @@ Tienes 2 opciones:
 
 ```bash
 git clone https://github.com/CrisTristan/carrito_de_compras_vite
-cd carrrito_de_compras_vite
+cd carrito_de_compras_vite
 ```
 
 ### Opcion B: Descargar ZIP
