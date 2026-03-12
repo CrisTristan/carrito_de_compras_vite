@@ -304,15 +304,18 @@ function App() {
                     </option>
                   ))}
               </select>
-              <input
-                type="number"
-                min="1"
-                max="100"
-                placeholder="% descuento"
+              <select
                 value={discountPercent}
                 onChange={(e) => setDiscountPercent(e.target.value)}
                 className="discount-input"
-              />
+              >
+                <option value="">% descuento</option>
+                <option value="10">10%</option>
+                <option value="20">20%</option>
+                <option value="30">30%</option>
+                <option value="40">40%</option>
+                <option value="50">50%</option>
+              </select>
               <button className="btn-discount" onClick={applyDiscount}>
                 Aplicar
               </button>
