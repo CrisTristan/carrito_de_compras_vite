@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect} from "react";
 import "./App.css";
 
 function App() {
@@ -18,6 +18,9 @@ function App() {
   const [cardStatus, setCardStatus] = useState(null);
   const [cardErrors, setCardErrors] = useState([]);
   const [showPayment, setShowPayment] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [productsWithDiscount, setProductsWithDiscount] = useState([]); //[{productId, beforeDiscount, afterDiscount }]
+
 
   useEffect(() => {
     fetch("http://localhost:3000/products")
@@ -26,6 +29,36 @@ function App() {
 
     loadCart();
   }, []);
+
+  useEffect(() => {
+
+      if (cardStatus === "success" && cart.length > 0) {
+        setTimeout(() => {
+          setShowSuccessModal(true);
+          setCardStatus(null);
+          setCard({
+            cardNumber: "",
+            cardHolder: "",
+            expMonth: "",
+            expYear: "",
+            cvv: "",
+          });
+          clearCart();
+        }, 5000);
+      }
+  }, [cardStatus]);
+
+
+
+  useEffect(() => {
+    if(cart.length > 0){
+      console.log(cart);
+    }
+  }, [cart]);
+
+  useEffect(() => {
+    console.log(productsWithDiscount);
+  }, [productsWithDiscount]);
 
   const loadCart = () => {
     fetch("http://localhost:3000/cart")
@@ -59,19 +92,46 @@ function App() {
     loadCart();
   };
 
+  const onDiscountApplied = (productId, beforeDiscount, afterDiscount, discountPercent) => {
+    setProductsWithDiscount((prev) => {
+      const existing = prev.find((p) => p.productId === productId);
+      if (existing) {
+        return prev.map((p) =>
+          p.productId === productId
+            ? { ...p, beforeDiscount, afterDiscount, discountPercent }
+            : p,
+        );
+      } else {
+        return [...prev, { productId, beforeDiscount, afterDiscount, discountPercent }];
+      }
+    });
+  };
+
   const applyDiscount = () => {
     const percent = parseFloat(discountPercent);
     if (!discountProductId || isNaN(percent) || percent <= 0 || percent > 100)
       return;
 
-    if (discountedIds.has(String(discountProductId))) return;
+    if (discountedIds.has(String(discountProductId))) return; //validación solo se puede aplicar un descuento por producto
 
     fetch(
       `http://localhost:3000/cart/discount/${encodeURIComponent(discountProductId)}?percent=${percent}`,
       {
         method: "POST",
       },
-    ).then(() => {
+    )
+    .then((res) => res.json())
+    .then((data) => {
+      console.log("discount response", data);
+      //buscar el precio actual del producto con el productId en el carrito
+      const productInCart = cart.find(
+        (p) => String(p.productId) === String(discountProductId),
+      );
+      const beforeDiscount = productInCart?.price || 0;
+      const afterDiscount = data.price || beforeDiscount;
+      onDiscountApplied(discountProductId, beforeDiscount, afterDiscount, percent);
+    })
+    .then(() => {
       setDiscountedIds((prev) => new Set(prev).add(String(discountProductId)));
       loadCart();
       setDiscountProductId("");
@@ -190,17 +250,24 @@ function App() {
                   <div className="cart-item-info">
                     <span className="cart-item-name">{p.name}</span>
                     <span className="cart-item-price">
-                      $
-                      {p.discountedPrice != null ? (
-                        <>
-                          <s className="original-price">{p.price}</s>{" "}
-                          <span className="discounted-price">
-                            {p.discountedPrice}
-                          </span>
-                        </>
+                     
+                      {
+                      discountedIds.has(String(p.productId)) ? (
+                         productsWithDiscount.filter((prod) => String(prod.productId) === String(p.productId)).map((prod, i) => {
+        
+                          return (
+                            <div key={i} className="cart-item-discount">
+                              <span class="cart-item-before-discount">{prod.beforeDiscount}</span>
+                              <span class="cart-item-discount-percent">-{prod.discountPercent}%</span>
+                              <span class="cart-item-after-discount">${prod.afterDiscount}</span>
+                            </div>
+                          );
+                        })
                       ) : (
-                        p.price
-                      )}
+                        `$${p.price}`
+                      )
+                    
+                    }
                     </span>
                   </div>
                   <button
@@ -230,7 +297,7 @@ function App() {
               >
                 <option value="">Seleccionar producto...</option>
                 {cart
-                  .filter((p) => !discountedIds.has(String(p.productId)))
+                  .filter((p) => !discountedIds.has(String(p.productId))) //solo se muestran productos que no han sido descontados
                   .map((p, i) => (
                     <option key={i} value={p.productId}>
                       {p.name}
@@ -333,6 +400,17 @@ function App() {
               </div>
             </div>
           )}
+          {
+            showSuccessModal && (
+              <div className="success-modal">
+                <button onClick={() => setShowSuccessModal(false)}>X</button>
+                <div className="success-content">
+                  <h1>¡Pago exitoso! 🎉</h1>
+                  <h2>Gracias Por su compra</h2>
+                </div>
+              </div>
+            )
+          }
         </section>
       </div>
     </div>
